@@ -1,0 +1,60 @@
+id: php2shell-php-version-unknown
+
+info:
+  name: PHP PHP2Shell Version Unknown - Passive Detect
+  author: scanfactory
+  severity: info
+  description: |
+    Detects a passive PHP response indicator without a complete x.y.z version.
+    This maps to PHP_VERSION_UNKNOWN in the Python checker. It does not establish
+    whether either PHP2Shell CVE is present or absent.
+  remediation: |
+    Identify the package and SAPI on the server or container, then compare them
+    with the PHP and operating-system vendor advisories.
+  reference:
+    - https://www.php.net/archive/2026.php#2026-10-21-5
+    - https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w
+    - https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp
+  classification:
+    cve-id:
+      - CVE-2026-109618
+      - CVE-2026-109619
+  metadata:
+    verified: true
+    max-request: 1
+    assessment-status: PHP_VERSION_UNKNOWN
+  tags: cve,cve2026,php,php2shell,passive,version,exposure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    headers:
+      Accept: text/html,*/*;q=0.1
+    redirects: false
+    max-size: 32768
+
+    matchers-condition: and
+    matchers:
+      - type: regex
+        part: header
+        condition: or
+        regex:
+          - '(?im)^(?:x-powered-by|x-backend-powered-by|server|x-php-version):[^\r\n]*\bphp\b'
+          - '(?im)^set-cookie:[^\r\n]*\bphpsessid\s*='
+
+      - type: regex
+        part: header
+        condition: or
+        negative: true
+        regex:
+          - '(?im)^(?:x-powered-by|x-backend-powered-by|server):[^\r\n]*\bphp(?:/|\s+)[0-9]+\.[0-9]+\.[0-9]+\b'
+          - '(?im)^x-php-version:\s*[0-9]+\.[0-9]+\.[0-9]+\b'
+
+    extractors:
+      - type: regex
+        name: php-indicator
+        part: header
+        regex:
+          - '(?im)^(?:X-Powered-By|X-Backend-Powered-By|Server|X-PHP-Version):[^\r\n]*\bPHP\b[^\r\n]*'
+          - '(?im)^Set-Cookie:[^\r\n]*\bPHPSESSID\s*='

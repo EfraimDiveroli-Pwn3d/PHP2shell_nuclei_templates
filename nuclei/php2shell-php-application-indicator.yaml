@@ -1,0 +1,122 @@
+id: php2shell-php-application-indicator
+
+info:
+  name: PHP Application Indicator - Passive Detect
+  author: scanfactory
+  severity: info
+  description: |
+    Passively identifies common applications and frameworks that normally run
+    on PHP. A match means that the PHP runtime version must be verified; it is
+    not evidence that CVE-2026-109618 or CVE-2026-109619 is exploitable.
+  remediation: |
+    Determine the PHP package and SAPI used by the responding virtual host,
+    then compare the runtime with the PHP and operating-system vendor
+    advisories. Account for verified vendor backports.
+  reference:
+    - https://github.com/projectdiscovery/nuclei-templates/blob/main/http/technologies/tech-detect.yaml
+    - https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w
+    - https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp
+  metadata:
+    verified: true
+    max-request: 1
+    assessment-status: PHP_APPLICATION_INDICATOR
+  tags: php,php2shell,cms,framework,tech,passive,discovery
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    headers:
+      Accept: text/html,*/*;q=0.1
+    redirects: false
+    max-size: 32768
+
+    matchers-condition: or
+    matchers:
+      - type: regex
+        name: 1c-bitrix
+        part: response
+        condition: or
+        regex:
+          - '(?im)^X-Powered-CMS:\s*[^\r\n]*\bBitrix\b'
+          - '(?im)^Set-Cookie:[^\r\n]*\bBITRIX_SM_[A-Za-z0-9_]*\s*='
+          - '(?i)<link[^>]+components/bitrix'
+          - '(?i)(?:src|href)\s*=\s*[^ >]*/bitrix/(?:js|templates|components)/'
+
+      - type: regex
+        name: drupal
+        part: response
+        condition: or
+        regex:
+          - '(?im)^X-Generator:\s*Drupal\b'
+          - '(?im)^X-Drupal-(?:Cache|Dynamic-Cache)\s*:'
+          - '(?i)<meta[^>]+content\s*=\s*[^ >]*Drupal\b'
+          - '(?i)\bdrupalSettings\b'
+          - '(?i)/(?:sites/(?:default|all)/(?:files|modules|themes)|core/misc/drupal\.js)\b'
+
+      - type: regex
+        name: wordpress
+        part: response
+        condition: or
+        regex:
+          - '(?i)<generator>https?://wordpress\.org'
+          - '(?i)<meta[^>]+content\s*=\s*[^ >]*WordPress\b'
+          - '(?i)/(?:wp-content|wp-includes)/'
+          - '(?i)\bwp-login\.php\b'
+
+      - type: regex
+        name: joomla
+        part: response
+        condition: or
+        regex:
+          - '(?i)<meta[^>]+content\s*=\s*[^ >]*Joomla!?\b'
+          - '(?i)<(?:link|script)[^>]+(?:feed|components)/com_'
+          - '(?i)\bJoomla_[0-9.]+_version_history\b'
+
+      - type: regex
+        name: nextcloud
+        part: response
+        condition: or
+        regex:
+          - '(?im)^X-Nextcloud-[A-Za-z0-9-]+\s*:'
+          - '(?im)^Set-Cookie:[^\r\n]*\b(?:__Host-)?nc_sameSiteCookie(?:lax|strict)\s*='
+          - '(?i)<meta[^>]+content\s*=\s*[^ >]*Nextcloud\b'
+
+      - type: regex
+        name: magento-adobe-commerce
+        part: response
+        condition: or
+        regex:
+          - '(?im)^X-Magento-[A-Za-z0-9-]+\s*:'
+          - '(?im)^Set-Cookie:[^\r\n]*\bmage-cache-(?:sessid|storage|storage-section-invalidation)\s*='
+          - '(?i)<script[^>]+data-requiremodule\s*=\s*[^ >]*(?:mage/|Magento_)'
+          - '(?i)<script[^>]+type\s*=\s*[^ >]*text/x-magento-init'
+
+      - type: regex
+        name: laravel
+        part: response
+        condition: or
+        regex:
+          - '(?im)^Set-Cookie:[^\r\n]*\blaravel_session\s*='
+          - '(?im)^X-Powered-By:\s*Laravel\b'
+          - '(?i)/vendor/laravel/framework/'
+
+      - type: regex
+        name: symfony
+        part: response
+        condition: or
+        regex:
+          - '(?im)^X-Debug-Token(?:-Link)?\s*:'
+          - '(?im)^Set-Cookie:[^\r\n]*\bsymfony\s*='
+          - '(?i)\bSymfony\\Component\\'
+          - '(?i)/(?:_profiler|_wdt)/[0-9a-f]+'
+
+      - type: regex
+        name: modx
+        part: response
+        condition: or
+        regex:
+          - '(?i)<a[^>]+>Powered by MODX</a>'
+          - '(?i)<(?:link|script)[^>]+assets/snippets/'
+          - '(?i)<form[^>]+id=[^ >]*ajaxSearch_form'
+          - '(?i)<input[^>]+id=[^ >]*ajaxSearch_input'

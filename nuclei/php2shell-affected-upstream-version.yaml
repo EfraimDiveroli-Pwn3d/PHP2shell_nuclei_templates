@@ -1,0 +1,77 @@
+id: php2shell-affected-upstream-version
+
+info:
+  name: PHP PHP2Shell Affected Upstream Version - Passive Detect
+  author: scanfactory
+  severity: info
+  description: |
+    Passively identifies a disclosed PHP 8.2-8.5 upstream version below the
+    fixed thresholds for CVE-2026-109618 and CVE-2026-109619. This is a
+    version-based exposure assessment, not proof of exploitability. Vendor
+    backports, the actual web runtime, and the SAPI must be verified separately.
+  remediation: |
+    Upgrade to PHP 8.2.35, 8.3.36, 8.4.27, or 8.5.12 and later as appropriate,
+    or verify a vendor/source backport using package-level evidence.
+  reference:
+    - https://www.php.net/archive/2026.php#2026-10-21-5
+    - https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w
+    - https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp
+  classification:
+    cve-id:
+      - CVE-2026-109618
+      - CVE-2026-109619
+  metadata:
+    verified: true
+    max-request: 1
+    assessment-status: AFFECTED_UPSTREAM_VERSION
+  tags: cve,cve2026,php,php2shell,passive,version,exposure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}"
+    headers:
+      Accept: text/html,*/*;q=0.1
+    redirects: false
+    max-size: 32768
+
+    matchers:
+      - type: dsl
+        dsl:
+          - |
+            len(php_version) > 0 &&
+            (
+              compare_versions(php_version, ">= 8.2.0", "< 8.2.35") ||
+              compare_versions(php_version, ">= 8.3.0", "< 8.3.36") ||
+              compare_versions(php_version, ">= 8.4.0", "< 8.4.27") ||
+              compare_versions(php_version, ">= 8.5.0", "< 8.5.12")
+            )
+
+    extractors:
+      - type: regex
+        name: php_version
+        part: header
+        group: 1
+        internal: true
+        regex:
+          - '(?im)^(?:X-Powered-By|X-Backend-Powered-By|Server):[^\r\n]*\bPHP(?:/|\s+)([0-9]+\.[0-9]+\.[0-9]+)\b'
+          - '(?im)^X-PHP-Version:\s*([0-9]+\.[0-9]+\.[0-9]+)\b'
+
+      - type: regex
+        name: php_version
+        part: body
+        group: 1
+        internal: true
+        regex:
+          - '(?is)phpinfo\(\).*?PHP\s+Version\s*(?:</[^>]+>\s*<[^>]+>\s*)?([0-9]+\.[0-9]+\.[0-9]+)\b'
+          - '(?is)PHP\s+Version\s*(?:</[^>]+>\s*<[^>]+>\s*)?([0-9]+\.[0-9]+\.[0-9]+)\b.*?phpinfo\(\)'
+
+      - type: regex
+        name: detected-php-version
+        part: response
+        group: 1
+        regex:
+          - '(?im)^(?:X-Powered-By|X-Backend-Powered-By|Server):[^\r\n]*\bPHP(?:/|\s+)([0-9]+\.[0-9]+\.[0-9]+)\b'
+          - '(?im)^X-PHP-Version:\s*([0-9]+\.[0-9]+\.[0-9]+)\b'
+          - '(?is)phpinfo\(\).*?PHP\s+Version\s*(?:</[^>]+>\s*<[^>]+>\s*)?([0-9]+\.[0-9]+\.[0-9]+)\b'
+          - '(?is)PHP\s+Version\s*(?:</[^>]+>\s*<[^>]+>\s*)?([0-9]+\.[0-9]+\.[0-9]+)\b.*?phpinfo\(\)'
